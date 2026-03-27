@@ -28,7 +28,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         // 3. 其余请求（DELETE/PUT等）必须校验Token
         String token = request.getHeader("Authorization");
         if (token == null || token.isEmpty()) {
-            // 返回401拦截响应
+
             response.setContentType("application/json;charset=UTF-8");
             String errorJson = "{\"code\":401,\"msg\":\"敏感操作["+method+"]需携带Token！\"}";
             PrintWriter writer = response.getWriter();
@@ -38,7 +38,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             return false; // 拦截，不放行
         }
 
-        // Token存在则放行（仅做存在性校验，实际项目需校验Token有效性）
+
         return true;
     }
 }

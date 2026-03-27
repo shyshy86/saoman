@@ -11,7 +11,7 @@ public class UserController {
 
     // 1. 查：根据ID获取用户信息（GET请求，路径 /api/users/{id}）
     @GetMapping("/{id}")
-    // 返回值改为 Result<String> 统一格式
+
     public Result<String> getUser(@PathVariable("id") Long id) {
         String data = "查询成功，正在返回 ID 为 " + id + " 的用户信息";
         // 使用统一响应工具类返回成功结果

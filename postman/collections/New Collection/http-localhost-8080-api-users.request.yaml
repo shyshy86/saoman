@@ -1,0 +1,14 @@
+$kind: http-request
+name: http://localhost:8080/api/users
+url: http://localhost:8080/api/users
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"name\": \"张三\",\r
+
+    \    \"age\": 21\r
+
+    }"
+order: 1773305302846

@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import java.util.UUID;
 
+//
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -49,6 +50,17 @@ public class UserServiceImpl implements UserService {
             String token = "Bearer_" + UUID.randomUUID().toString().replace("-", "");
             return Result.success(token);
 
+        } catch (EmptyResultDataAccessException e) {
+            return Result.error(ResultCode.USER_NOT_EXIST);
+        }
+    }
+
+    @Override
+    public Result<String> getUserById(Long id) {
+        String sql = "SELECT username FROM sys_user WHERE id = ?";
+        try {
+            String username = jdbcTemplate.queryForObject(sql, String.class, id);
+            return Result.success("查询成功，用户名为：" + username);
         } catch (EmptyResultDataAccessException e) {
             return Result.error(ResultCode.USER_NOT_EXIST);
         }

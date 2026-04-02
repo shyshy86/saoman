@@ -25,9 +25,9 @@ public class UserController {
         return userService.login(userDTO);
     }
 
-    // 查询用户（测试）
+    // 查询用户
     @GetMapping("/{id}")
-    public Result<String> getUser(@PathVariable Long id) {
-        return Result.success("查询成功，用户ID：" + id);
+    public Result<String> getUserById(@PathVariable Long id) {
+        return userService.getUserById(id);
     }
 }

@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 //
@@ -64,5 +66,33 @@ public class UserServiceImpl implements UserService {
         } catch (EmptyResultDataAccessException e) {
             return Result.error(ResultCode.USER_NOT_EXIST);
         }
+    }
+
+    @Override
+    public Result<Object> getUserPage(Integer pageNum, Integer pageSize) {
+        // 1. 计算偏移量
+        int offset = (pageNum - 1) * pageSize;
+        
+        // 2. 查询数据
+        String dataSql = "SELECT id, username FROM sys_user LIMIT ? OFFSET ?";
+        List<Map<String, Object>> records = jdbcTemplate.queryForList(dataSql, pageSize, offset);
+        
+        // 3. 查询总数
+        String countSql = "SELECT COUNT(*) FROM sys_user";
+        Integer total = jdbcTemplate.queryForObject(countSql, Integer.class);
+        
+        // 4. 计算总页数
+        int pages = (total + pageSize - 1) / pageSize;
+        
+        // 5. 构建返回结果
+        Map<String, Object> result = Map.of(
+            "records", records,
+            "total", total,
+            "current", pageNum,
+            "size", pageSize,
+            "pages", pages
+        );
+        
+        return Result.success(result);
     }
 }

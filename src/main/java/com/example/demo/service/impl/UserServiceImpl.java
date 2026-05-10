@@ -2,6 +2,7 @@ package com.example.demo.service.impl;
 
 import com.example.demo.common.Result;
 import com.example.demo.common.ResultCode;
+import com.example.demo.config.JwtUtil;
 import com.example.demo.dto.UserDTO;
 import com.example.demo.entity.UserInfo;
 import com.example.demo.mapper.UserInfoMapper;
@@ -32,8 +33,12 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserInfoMapper userInfoMapper;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @Override
     public Result<String> register(UserDTO userDTO) {
+        // 1. 检查用户名是否存在
         String checkSql = "SELECT COUNT(*) FROM sys_user WHERE username=?";
         Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, userDTO.getUsername());
 
@@ -41,6 +46,7 @@ public class UserServiceImpl implements UserService {
             return Result.error(ResultCode.USER_HAS_EXISTED);
         }
 
+        // 2. 插入数据库
         String insertSql = "INSERT INTO sys_user(username,password) VALUES(?,?)";
         jdbcTemplate.update(insertSql, userDTO.getUsername(), userDTO.getPassword());
 
@@ -50,14 +56,17 @@ public class UserServiceImpl implements UserService {
     @Override
     public Result<String> login(UserDTO userDTO) {
         try {
+            // 1. 查询密码
             String sql = "SELECT password FROM sys_user WHERE username=?";
             String dbPwd = jdbcTemplate.queryForObject(sql, String.class, userDTO.getUsername());
 
+            // 2. 校验密码
             if (!dbPwd.equals(userDTO.getPassword())) {
                 return Result.error(ResultCode.PASSWORD_ERROR);
             }
 
-            String token = "Bearer_" + UUID.randomUUID().toString().replace("-", "");
+            // 3. 生成 JWT token
+            String token = jwtUtil.generateToken(userDTO.getUsername());
             return Result.success(token);
 
         } catch (EmptyResultDataAccessException e) {
@@ -105,7 +114,6 @@ public class UserServiceImpl implements UserService {
                 UserDetailVO cacheVO = JSONUtil.toBean(json, UserDetailVO.class);
                 return Result.success(cacheVO);
             } catch (Exception e) {
-                // 缓存数据异常，删掉脏缓存，继续查数据库
                 redisTemplate.delete(key);
             }
         }
@@ -129,26 +137,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result<String> updateUserInfo(UserInfo userInfo) {
-        // 参数校验
         if (userInfo == null || userInfo.getUserId() == null) {
             return Result.error(ResultCode.ERROR);
         }
 
-        // 检查用户是否存在
         String checkSql = "SELECT COUNT(*) FROM sys_user WHERE id = ?";
         Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, userInfo.getUserId());
         if (count == null || count == 0) {
             return Result.error(ResultCode.USER_NOT_EXIST);
         }
 
-        // 更新或插入用户扩展信息
         if (userInfoMapper.userInfoExists(userInfo.getUserId())) {
             userInfoMapper.updateUserInfo(userInfo.getUserId(), userInfo.getRealName(), userInfo.getPhone(), userInfo.getAddress());
         } else {
             userInfoMapper.insertUserInfo(userInfo.getUserId(), userInfo.getRealName(), userInfo.getPhone(), userInfo.getAddress());
         }
 
-        // 删除缓存
         String cacheKey = CACHE_KEY_PREFIX + userInfo.getUserId();
         redisTemplate.delete(cacheKey);
 
@@ -157,11 +161,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result<String> deleteUser(Long userId) {
-        // 删除用户扩展信息
         userInfoMapper.deleteUserInfo(userId);
-        // 删除用户
         userInfoMapper.deleteUser(userId);
-        // 删除缓存
         String cacheKey = CACHE_KEY_PREFIX + userId;
         redisTemplate.delete(cacheKey);
         return Result.success("删除成功！");
